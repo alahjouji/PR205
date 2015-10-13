@@ -1,0 +1,57 @@
+include "taxonomy.diaspec";
+
+// context 0
+context GpsConversion as GpsCoordinates {
+    when provided answer from Prompter
+    get destCoordinates from GpsWs
+    no publish; 
+ 
+   when required;   
+}
+
+// context 1
+context JourneyComputer as Sending {
+    when provided answer from Prompter
+    get GpsConversion, journeys from NavitiaWS
+    always publish;
+}
+
+// context 2
+context JourneySelection as String {
+	when provided JourneyComputer
+	always publish; // Always publish? pour les contx 3 et controleur 1 et maybe publish pour //contx 4
+	when required;
+}
+
+//context 2bis
+context BikeChecker as String {
+	when provided JourneySelection
+	maybe publish;
+}
+// context 3
+context IncidentDetection as Boolean {
+    when provided timerTriggered from Timer //??
+    get JourneySelection, real_time_schedules from BordeauxMetropole, theoretical_schedules from BordeauxMetropole
+    maybe publish;
+
+}
+
+// context 4
+context Bike_availability as String{
+    when provided BikeChecker
+    get bikes from BordeauxMetropole
+    maybe publish;
+}
+
+// BoardOnTime controller
+
+controller Dispatcher {
+	when provided  JourneySelection
+	do SendMessage on Messenger;  
+	when provided  IncidentDetection
+	do Notification on Notifier;     
+}
+controller TransporterController{
+	when provided Bike_availability
+	do SendMessage on Mailer;    
+}
